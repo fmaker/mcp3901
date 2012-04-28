@@ -22,7 +22,8 @@ ifneq ($(KERNELRELEASE),)
 	obj-m := mcp3901.o
 # Otherwise
 else
-	#KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+	ARCH=arm
+	CROSS_COMPILE=~/opt/aosp/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
 	KERNELDIR ?= ~/opt/aosp/kernel/omap/
 	PWD := $(shell pwd)
 all:

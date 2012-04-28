@@ -20,19 +20,20 @@
 #include <linux/module.h>
 
 
-static int __init NAME_init(void)
+static int __init mcp3901_init(void)
 {
 	return 0;
 }
-module_init(NAME_init);
+module_init(mcp3901_init);
 
-static void __exit NAME_exit(void)
+static void __exit mcp3901_exit(void)
 {
 
 }
-module_exit(NAME_exit);
+module_exit(mcp3901_exit);
 
 MODULE_AUTHOR("Frank Maker");
+MODULE_DESCRIPTION("");
 MODULE_LICENSE("GPL");
 
 
