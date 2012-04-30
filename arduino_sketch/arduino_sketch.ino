@@ -19,6 +19,7 @@
 
 
   Arduino Mega -> MCP3901 Evaluation Board connections:
+  * RESET -> 48
   * SDO -> 50
   * SDI -> 51
   * SCK -> 52
@@ -33,20 +34,36 @@
 */
 
 #include <SPI.h>
+#include <math.h>
 
 /* Arduino */
+#define	 RESET	48
 #define	 CS	53
+#define  CHAR_BIT	8
 
 /* MCP3901 */
-#define  CH0    0x00
-#define  CH1    0x03
-#define  WIDTH  16
+#define  BIT_16 0xFFFF
+#define  NUM_CHAN    2
+#define  WIDTH    2
+#define  VREF    2.37F
+#define  BITS    16
+#define  GAIN    1
+#define  SINC_ORDER    3
 
-void setup(){
+/* Global */
+float volt_per_cnt;
+
+void setup()
+{
 
   // Setup serial
   Serial.begin(9600);
   Serial.println("MCP3901 Test v0.1");
+
+  // Setup reset
+  pinMode(RESET, OUTPUT);
+  digitalWrite(RESET, LOW);
+  digitalWrite(RESET, HIGH);
 
   // Setup SPI
   pinMode(CS, OUTPUT);
@@ -54,26 +71,81 @@ void setup(){
   SPI.setDataMode(SPI_MODE0);
   SPI.setClockDivider(SPI_CLOCK_DIV128); /* Slowest clock for testing */
   SPI.begin();
+
+  volt_per_cnt = 2.37F / (pow(2,BITS-1)) / GAIN / SINC_ORDER;
+  Serial.println(volt_per_cnt);
 };
 
-void loop() {
-  byte ret;
-  int ch1, ch2;
+float convert(int counts)
+{
+  return counts * volt_per_cnt;
+}
+
+void print_chans(float ch0, unsigned int ch0_cnts, float ch1, unsigned int ch1_cnts)
+{
+  Serial.print("CH0:");
+  Serial.print(ch0);
+  Serial.print(" (");
+  Serial.print(ch0_cnts, DEC);
+  Serial.print(") ");
+
+  Serial.print("CH1:");
+  Serial.print(ch1);
+  Serial.print(" (");
+  Serial.print(ch1_cnts, DEC);
+  Serial.print(") ");
+
+  Serial.print('\r');
+  
+}
+
+void loop()
+{
+
+  int i, j;
+  float ch0, ch1;
+  unsigned int ch0_cnts, ch1_cnts;
 
   /* Activate SPI device */
   digitalWrite(CS, LOW);
-
+  
   /* Send device 0, read command for address 0x0 */
   SPI.transfer(0x1);
 
-  /* Need to get two bytes from each adc and output them sequentially */
+  while (1) {
 
-  while(1){
+    for(i=0; i<NUM_CHAN; i++){
+      float value;
+      unsigned int cnts = 0;
 
-    ret = SPI.transfer(0x0);
+      for(j=0; j<WIDTH; j++){
+	byte ret;
+	ret = SPI.transfer(0x0);
+
+	cnts += ret;
+	cnts <<= (WIDTH - 1 - j) * CHAR_BIT;
+
+      }
+      value = convert(cnts);
+
+      switch(i){
+      case 0:
+	ch0 = value;
+	ch0_cnts = cnts;
+	break;
+      case 1:
+	ch1 = value;
+	ch1_cnts = cnts;
+	break;
+      }
+
+    }
+    print_chans(ch0, ch0_cnts, ch1, ch1_cnts);
+    delay(100);
+
   }
 
   /* Deactivate SPI device */
   digitalWrite(CS, HIGH);
-
+  
 };
