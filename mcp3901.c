@@ -20,6 +20,22 @@
 #include <linux/module.h>
 #include <linux/spi/spi.h>
 
+#define SPI_BUS1     1
+
+static struct spi_device *mcp3901_device;
+
+static  __initdata struct spi_board_info mcp3901_board_info = {
+	.modalias	= "mcp3901",
+	.platform_data  = NULL,
+	.mode           = SPI_MODE_0,
+	.irq            = NULL,
+	.max_speed_hz   = 1000,
+	.bus_num        = SPI_BUS1,
+	.chip_select    = 0,
+
+};
+
+
 struct mcp3901_state {
 	struct spi_device	*dev;
 	struct mutex            lock;
@@ -62,14 +78,46 @@ static struct spi_driver mcp3901_driver = {
 
 };
 
+static int __init mcp3901_hotplug(void)
+{
+	int ret;
+	struct spi_master     *master;
+
+	master = spi_busnum_to_master(SPI_BUS1);
+	if(master == NULL)
+		return -ENODEV;
+
+	mcp3901_device = spi_new_device(master, &mcp3901_board_info);
+	if(mcp3901_device == NULL)
+		return -ENODEV;
+
+	printk("Hotplugged MCP3901.");
+	return 0;
+}
+
 static int __init mcp3901_init(void)
 {
-	return spi_register_driver(&mcp3901_driver);
+	int ret;
+
+	ret = spi_register_driver(&mcp3901_driver);
+	if(ret)
+		goto error;
+
+	ret = mcp3901_hotplug();
+	if(ret)
+		goto error;
+
+	return 0;
+
+error:
+	return ret;
+
 }
 module_init(mcp3901_init);
 
 static void __exit mcp3901_exit(void)
 {
+	spi_unregister_device(mcp3901_device);
 	spi_unregister_driver(&mcp3901_driver);
 }
 module_exit(mcp3901_exit);
@@ -77,5 +125,4 @@ module_exit(mcp3901_exit);
 MODULE_AUTHOR("Frank Maker <frank.maker@gmail.com>");
 MODULE_DESCRIPTION("MCP3901 ADC SPI Driver");
 MODULE_LICENSE("GPL");
-
 
