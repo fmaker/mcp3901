@@ -23,10 +23,7 @@ ifneq ($(KERNELRELEASE),)
 # Otherwise
 else
 	ARCH=arm
-	#CROSS_COMPILE=~/opt/aosp/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/arm-eabi-
-	#KERNELDIR ?= ~/opt/aosp/kernel/omap/
-        CROSS_COMPILE=arm-linux-gnueabihf-
-        KERNELDIR ?= /home/fmaker/opt/ubuntu-precise-git/
+        KERNELDIR ?= /lib/modules/$(shell uname -r)/build 
 	PWD := $(shell pwd)
 all:
 	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
