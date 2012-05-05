@@ -18,22 +18,64 @@
  */
 
 #include <linux/module.h>
+#include <linux/spi/spi.h>
 
+struct mcp3901_state {
+	struct spi_device	*dev;
+	struct mutex            lock;
+};
+
+/* Bind driver to board_info using modalias "mcp3901" */
+static int __devinit mcp3901_probe(struct spi_device *spi)
+{
+	struct mcp3901_state             *state;
+	struct mcp3901_platform_data     *pdata;
+
+	pdata = spi->dev.platform_data;
+	if(!pdata)
+		return -ENODEV;
+
+	state = kzalloc(sizeof(struct mcp3901_state), GFP_KERNEL);
+	if(!state)
+		return -ENOMEM;
+
+	spi_set_drvdata(spi, state);
+
+	return 0;
+}
+
+static int __devexit mcp3901_remove(struct spi_device *spi)
+{
+	struct mcp3901_state *st = spi_get_drvdata(spi);
+	kfree(st);
+	return 0;
+}
+
+static struct spi_driver mcp3901_driver = {
+	.driver = {
+		.name          = "mcp3901",
+		.owner         = THIS_MODULE,
+	},
+	
+	.probe           = mcp3901_probe,
+	.remove          = __devexit_p(mcp3901_remove),
+
+};
 
 static int __init mcp3901_init(void)
 {
-	return 0;
+	return spi_register_driver(&mcp3901_driver);
 }
 module_init(mcp3901_init);
 
 static void __exit mcp3901_exit(void)
 {
-
+	spi_unregister_driver(&mcp3901_driver);
 }
 module_exit(mcp3901_exit);
 
-MODULE_AUTHOR("Frank Maker");
-MODULE_DESCRIPTION("");
+MODULE_AUTHOR("Frank Maker <frank.maker@gmail.com>");
+MODULE_DESCRIPTION("MCP3901 ADC SPI Driver");
 MODULE_LICENSE("GPL");
 
 
